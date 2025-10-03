@@ -1,0 +1,427 @@
+<html>
+<head>
+
+<title>1MAutoViewer</title>
+
+<META HTTP-EQUIV="Pragma" CONTENT="no-cache">
+<META HTTP-EQUIV="Expires" CONTENT="-1">
+
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDmrLN2z0y1M2Dg8hvhfBckywh_kDXQC_k"> </script>
+
+<script src="maplabel1.js"> </script>
+
+<!-- script src="https://htpm.co/1mviewer/UTMProj.js"> </script -->
+<script>
+// UTM code that Phil D is using
+const
+Re=6378.137,f1=1/298.257223563,N0=0,E0=500,k0=0.9996,n1=f1/(2-f1),n2=n1*n1,n3=n1*n2,Rn=Re/(1+n1)*(1+n2/4*(1+n2/16)),alfa1=0.5*n1-2/3*n2+5/16*n3,alfa2=13/48*n2-3/5*n3,alfa3=61/240*n3,beta1=0.5*n1-2/3*n2+37/96*n3,beta2=1/48*n2+1/15*n3,beta3=17/480*n3,gama1=2*n1-2/3*n2-2*n3,gama2=7/3*n2-8/5*n3,gama3=56/15*n3,R_D=Math.PI/180;
+
+function toUTM(LLPnt){var Result={Eing:NaN,Ning:NaN,Zone:0};if(Re===undefined)setConst();var Lat,Lon;if(Object.keys(LLPnt)[1]=="lng"){try{Lat=LLPnt.lat();Lon=LLPnt.lng();}catch{Lat=LLPnt.lat;Lon=LLPnt.lng;}}else{const i=(Object.keys(LLPnt)[0].indexOf("o")>0?0:1);Lon=Object.values(LLPnt)[i];Lat=Object.values(LLPnt)[1-i];}
+var shem=(Lat<0?1:0);var zone=Math.trunc(Lon/6)+30,GSize10=10e6;var lda=Lon*R_D,phi=Lat*R_D;var sinphi=Math.sin(phi);var sindlda=Math.sin(lda-(6*zone-183)*R_D),cosdlda=Math.sqrt(1-sindlda*sindlda);var sqrt2n1=2*Math.sqrt(n1)/(1+n1);var t2=Math.sinh(Math.atanh(sinphi)-sqrt2n1*Math.atanh(sqrt2n1*sinphi));var xsi1=Math.atan(t2/cosdlda);var eta1=Math.atanh(sindlda/Math.sqrt(1+t2*t2));var E=E0+k0*Rn*(eta1
++alfa1*Math.cos(2*xsi1)*Math.sinh(2*eta1)
++alfa2*Math.cos(4*xsi1)*Math.sinh(4*eta1)
++alfa3*Math.cos(6*xsi1)*Math.sinh(6*eta1));var N=N0+k0*Rn*(xsi1
++alfa1*Math.sin(2*xsi1)*Math.cosh(2*eta1)
++alfa2*Math.sin(4*xsi1)*Math.cosh(4*eta1)
++alfa3*Math.sin(6*xsi1)*Math.cosh(6*eta1));Result.Eing=Math.round(E*1e3)%GSize10;Result.Ning=Math.round(N*1e3)%GSize10;Result.Zone=zone
+if(shem){Result.Ning+=GSize10;Result.Zone=-Result.Zone}
+return Result;}
+</script>
+
+<script>
+
+//permanent globals
+const Anchors = [{lon:-0, lat:0},
+    {name:"SCP", lon:-117.8911654, lat:33.6910074},
+    {name:"SNA", lon:-117.86833, lat:33.67536},
+    {name:"WFB", lon:-117.86359, lat:33.66848},
+    {name:"UCI", lon:-117.84272, lat:33.64577},
+	{name:"CDM", lon:-117.8682035, lat:33.5982949}, ]
+	
+var ANCH={}, CTR={}, coslat, delE,delN;	
+var map, marker,markers=[], tag;
+var EN, gLL, gEN, gU1; 
+const delta1 = 90/10e3, delta2 = 0.5*delta1;  // units: deg per km
+//const te = document.getElementById("tECM"), tu = document.getElementById("tU1M");  alert(toU1M(te.value)); alert(toECM(tu.value))
+
+//const m = 1000, m2 = 500; // for 1k grids  (use m =100, m2 = 50 for 100m grids)
+const offset=[0, 0]; //offset of U1M from UTM (optional, iff/when Lee asks for it)
+var origin=[0, 0], o0m, o1m; // full, precise UTM of grid center
+
+  const params = new URLSearchParams(window.location.search); 
+  
+  google.maps.event.addDomListener(window, 'load', initMap);  // execution begins here
+
+
+  function setAnchor(idx) { //alert("at setAnchor "+idx)
+    var a = document.getElementById("Anchor");
+	if (idx==0) { a.value = ""; return;}
+	a.value = Anchors[idx].lon+" & "+Anchors[idx].lat;
+	initMap(idx);
+  }
+  function txtAnchor() { //alert("at txtAnchor ")
+    document.getElementById("Builtins").selectedIndex = 0; 
+    var a = document.getElementById("Anchor"); 
+ 	if (a.value.indexOf("&")<0 && a.value.indexOf(",")<0) { alert("improper lon&lat"); return;}
+    initMap(-1);
+  }
+
+
+  function initMap(idx) {
+    var a = document.getElementById("Anchor"), o; //alert(a.value)
+	if (idx<0 && a.value=="")  { alert("Enter Anchor long&lat"); return;}
+   if (idx==undefined) {
+     ANCH.lat = 33.66848; ANCH.lng = -117.86359;  // WFB
+	 a.value = ANCH.lng+" & "+ANCH.lat;
+	 o = "WFB";
+   } else {	
+    if (idx==0) {
+	 a.value = "0&0";
+	 ANCH.lat = 0; ANCH.lng = 0;  // world default;
+	 o = "0&0";
+	} else {
+   //document.getElementById("GType").removeAttribute("disabled");
+	 if (a.value.indexOf("&")>0) var v = a.value.split("&");
+	 else if (a.value.indexOf(",")>0) { var v = a.value.split(","); var v0=v[0]; v[0]=v[1]; v[1]=v0;} //only for consistency with URL params
+	 ANCH.lat = parseFloat(v[1]); ANCH.lng = parseFloat(v[0]); //alert(ANCH.lat+" "+ANCH.lng)// GMaps notation
+	 o = "??"; if (idx>0) o = Anchors[idx].name; //alert(idx+" "+o)
+	}
+   } 	
+     CTR = ANCH;
+     setGridConsts();
+  if (params.has("C500")) { alert("dels "+delE+" "+delN); alert("oXms "+o0m+" "+o1m);}
+	 var t = (params.has("C500") ? "500.500":"550.550"); document.getElementById("tECM").value = t; 
+	 t = toU1M(t); document.getElementById("tU1M").value = t;
+	 document.getElementById("tatC").value = "@"+t.slice(1,3)+t.slice(5,7);
+	 if (map!==undefined) map = null;
+  //var u = toUTM(ANCH); u.Eing -= (u.Eing%100 +0); u.Ning -= (u.Ning%100 +0); CTR = toLL(u, u.Zone); //alert(CTR.lat.toFixed(5)+" "+CTR.lng.toFixed(5))
+    coslat = Math.cos(CTR.lat*Math.PI/180)
+	const plussign = {url:'plus-sign2t.png', size:new google.maps.Size(17,15), anchor:new google.maps.Point(8,8)};
+    map = new google.maps.Map(document.getElementById('map'), {zoom:19, center:ANCH, clickableIcons:false,});
+  //new google.maps.Circle({center:CTR, radius:5, clickable:false, fillOpacity:0, strokeColor:"#00f", strokeWeight:0.5, map });
+	center = new google.maps.Marker({position:CTR, title:o, icon:plussign, animation:google.maps.Animation.DROP, map }); 
+    drawGridTile();
+	gLL = document.getElementById("gLL"); gEN = document.getElementById("gEN"); gU1 = document.getElementById("gU1"); gE1 = document.getElementById("gE1");
+    setTimeout(main, 1000);
+  }
+  
+  
+  function drawGridTile() { //alert("at drawSubTile "+CTR.lat+","+CTR.lng)
+   const tileco = [
+    {lat:CTR.lat-delta2, lng:CTR.lng-delta2/coslat},
+    {lat:CTR.lat-delta2, lng:CTR.lng+delta2/coslat},
+    {lat:CTR.lat+delta2, lng:CTR.lng+delta2/coslat},
+    {lat:CTR.lat+delta2, lng:CTR.lng-delta2/coslat}, 
+    {lat:CTR.lat-delta2, lng:CTR.lng-delta2/coslat} ];
+    var tile = new google.maps.Polygon({path:tileco, strokeColor:"#f0f", strokeWeight:0.5, fillOpacity:0.05, map})
+    tile.addListener('click', clickMarker);
+	tile.addListener('mousemove', updateLocators);
+ if (true) {  // subtile as poly
+   const subtileco = [
+    {lat:CTR.lat-0.1*delta2, lng:CTR.lng-0.1*delta2/coslat},
+    {lat:CTR.lat-0.1*delta2, lng:CTR.lng+0.1*delta2/coslat},
+    {lat:CTR.lat+0.1*delta2, lng:CTR.lng+0.1*delta2/coslat},
+    {lat:CTR.lat+0.1*delta2, lng:CTR.lng-0.1*delta2/coslat}, 
+    {lat:CTR.lat-0.1*delta2, lng:CTR.lng-0.1*delta2/coslat} ];
+      new google.maps.Polyline({path:[{lat:CTR.lat-0.3*delta2, lng:CTR.lng-0.1*delta2/coslat},{lat:CTR.lat+0.3*delta2, lng:CTR.lng-0.1*delta2/coslat}], strokeColor:"#707", strokeWeight:0.25, map});
+      new google.maps.Polyline({path:[{lat:CTR.lat-0.3*delta2, lng:CTR.lng+0.1*delta2/coslat},{lat:CTR.lat+0.3*delta2, lng:CTR.lng+0.1*delta2/coslat}], strokeColor:"#707", strokeWeight:0.25, map});
+      new google.maps.Polyline({path:[{lat:CTR.lat-0.1*delta2, lng:CTR.lng-0.3*delta2/coslat},{lat:CTR.lat-0.1*delta2, lng:CTR.lng+0.3*delta2/coslat}], strokeColor:"#707", strokeWeight:0.25, map});
+      new google.maps.Polyline({path:[{lat:CTR.lat+0.1*delta2, lng:CTR.lng-0.3*delta2/coslat},{lat:CTR.lat+0.1*delta2, lng:CTR.lng+0.3*delta2/coslat}], strokeColor:"#707", strokeWeight:0.25, map});
+//*
+	var j = +2; while (--j>-2) {
+	 var i = -2; while (++i<+2) {
+	  new MapLabel({text:(i-3*j+5).toString(), position:{lat:CTR.lat +j*0.2*delta2, lng:CTR.lng +i*0.2*delta2/coslat}, fontColor:'#9f009f', fontSize:12, minZoom:14, map:map}); }}
+//*/
+	if (true || !params.has("auto")) {
+      new google.maps.Polyline({path:subtileco, strokeColor:"#707", strokeWeight:0.5, map})
+	} else {
+    //var subtile = new google.maps.Polygon({path:subtileco, strokeColor:"#707", strokeWeight:0.5, fillOpacity:0.10, map})
+    //subtile.addListener('click', clickMarker2);
+   }
+ } else {  // extended subtile lines
+    var dx = 0.1, dy = 0.1;
+      new google.maps.Polyline({path:[{lat:CTR.lat-(0.3-dy)*delta2, lng:CTR.lng-(0.1-dx)*delta2/coslat},{lat:CTR.lat+(0.3+dy)*delta2, lng:CTR.lng-(0.1-dx)*delta2/coslat}], strokeColor:"#707", strokeWeight:0.25, map});
+      new google.maps.Polyline({path:[{lat:CTR.lat-(0.3-dy)*delta2, lng:CTR.lng+(0.1+dx)*delta2/coslat},{lat:CTR.lat+(0.3+dy)*delta2, lng:CTR.lng+(0.1+dx)*delta2/coslat}], strokeColor:"#707", strokeWeight:0.25, map});
+      new google.maps.Polyline({path:[{lat:CTR.lat-(0.1-dy)*delta2, lng:CTR.lng-(0.3-dx)*delta2/coslat},{lat:CTR.lat-(0.1-dy)*delta2, lng:CTR.lng+(0.3+dx)*delta2/coslat}], strokeColor:"#707", strokeWeight:0.25, map});
+      new google.maps.Polyline({path:[{lat:CTR.lat+(0.1+dy)*delta2, lng:CTR.lng-(0.3-dx)*delta2/coslat},{lat:CTR.lat+(0.1+dy)*delta2, lng:CTR.lng+(0.3+dx)*delta2/coslat}], strokeColor:"#707", strokeWeight:0.25, map});
+	var j = +2; while (--j>-2)
+	 var i = -1; while (++i<2)
+	  new MapLabel({text:""+(3*j+i+5), position:{lat:CTR.lat +(j*dy)*delta2, lng:CTR.lng +(i*dx)*delta2/coslat}, fontColor:'#9f009f', fontSize:12, minZoom:14, map:map});
+ } 
+  }
+
+  function updateLocators(e) {//alert(e.latLng.lng()+"&"+e.latLng.lat())
+  // Update tracking coords and the infowindow locator string, iff visible (performance)
+    var elat = e.latLng.lat(), elng = e.latLng.lng();
+    var x = Math.trunc((elng-CTR.lng)/(1e-3*delta1/coslat)) +550, y = Math.trunc((elat-CTR.lat)/(1e-3*delta1)) +550;
+    var e1 = (1000+x).toString().slice(1)+"."+(1000+y).toString().slice(1);
+	var u = toUTM(e.latLng), u1 = toU1M(e1);  //NB: UTM is exact, U1M approx
+//if (offset[0]) u.Eing += offset[0]; if (offset[1]) u.Ning += offset[1];  //NB: now done in setGridConsts //shifts grid itself, UTM Offsets, per SLee
+    gLL.value = elng.toFixed(6)+" & "+elat.toFixed(6); gEN.value = u.Eing+" & "+u.Ning; gU1.value = u1; gE1.value = e1;
+  }
+
+function main() {
+  setGridConsts();
+}
+function setGridConsts() {
+//globals (re-calculated when the grid changes)
+  const c = (params.has("C500")?500:550);
+  const u = toUTM(CTR); //alert(u.Eing+"*"+u.Ning)
+  delE = u.Eing%1000 -c, delN = u.Ning%1000 -c; 
+  coslat = Math.cos(CTR.lat*Math.PI/180); zone = Math.trunc(CTR.lng/6)+30; //alert(coslat+" "+zone)
+  origin[0] = u.Eing +offset[0]; o0m = origin[0]%1000; 
+  origin[1] = u.Ning +offset[1]; o1m = origin[1]%1000; 
+}
+
+function toECM(xy) {
+// convert 6-digit U1M number to equivalent ECM (dot-separated in both cases)
+  var t = xy.trim();
+  const v = t.split("."), x = parseInt(v[0]), y = parseInt(v[1]); //alert(v[0]+" "+v[1])
+  if (x<100&&y<100) t = (500 + (x +(1000-delE))%100)+"."+(500 +(y +(1000-delN))%100);  // 4-digit
+  else t = (x +(1000-delE)).toString().slice(1)+"."+( y+(1000-delN)).toString().slice(1);
+  return t;
+}
+
+function toU1M(xy){
+// convert 6-digit ECM number to equivalent U1M (dot-separated in both cases)
+  var t = xy.trim(); 
+  const v = t.split("."), x = parseInt(v[0]), y = parseInt(v[1]); //alert(v[0]+" "+v[1])
+  t = (x +(1000+delE)).toString().slice(1)+"."+(y +(1000+delN)).toString().slice(1); 
+  return t;
+}
+
+function clickMarker(e) {
+//TODO: Shift-click to create a vector
+// create a marker from a click on map, an Google latLng
+  const c = (params.has("C500")?500:550);
+  const ta = document.getElementById("tatC");
+  const elat = e.latLng.lat(), elng = e.latLng.lng();
+  const x = Math.trunc((elng-CTR.lng)/(1e-3*delta1/coslat)) +c, y = Math.trunc((elat-CTR.lat)/(1e-3*delta1)) +c;
+  const t = (1000+x).toString().slice(1)+"."+(1000+y).toString().slice(1);
+//ta.value = t.charAt(0)+t.charAt(4)+"@"+t.slice(1,3)+t.slice(5,7);
+  const tag = drawMarker({lat:elat, lng:elng}, x,y, 1);
+  ta.value = tag.slice(0,7) //?TEMP
+}
+/*
+function near1Marker() { //alert("at nearMarker ") //(nearMarker!==undefined?true:false))
+// create nearest marker with (first) @code in text box]
+  if (nearMarker!==undefined) nearMarker.setMap();
+  const ta = document.getElementById("tatC");
+  var t = ta.value, i = t.indexOf("@"); 
+  if (i>0 || t.length!=(5+i)) { alert("Improper @code!"); return }
+  t = t.slice(-4); const tx = parseInt(t.slice(0,2)), ty = parseInt(t.slice(2,4)); //alert (tx+" "+ty)
+  const o = tag.slice(3,7), o0 = parseInt(tag.charAt(0)), o1 = parseInt(tag.charAt(1)), ox = parseInt(o.slice(0,2)), oy = parseInt(o.slice(2,4)); //alert (ox+" "+oy)
+  if (t == o) {alert("Arrived!"); return }  
+  var k = 0, dk = 99e9, dx, dy, xy; 
+  var j = +2; while (--j>-2) {
+   var i = -2; while (++i<+2) { //alert(j+" "+i)
+    d = (ox-(tx+i*100))**2 + (oy-(ty+j*100))**2; //alert ((5-3*j+i)+" "+Math.sqrt(d).toFixed(1)+"; "+10*i+j+", "+(tx+i*100)+" "+(ty+j*100))
+    if (d<dk) { dk = d; k = 5-3*j+i; dx = (tx+i*100); dy = (ty+j*100); xy = (100 +(10*((o0+i)%10)+((o1+j)%10))).toString().slice(1);} // save first nearest, in queens-case scan
+   }
+  } //alert (k+" "+Math.sqrt(dk).toFixed(1)+"; "+dx+" "+dy+", "+xy) 
+ if (true) {//*TEMP
+  const elng = CTR.lng +(dx)*(1e-3*delta1/coslat), elat = CTR.lat +(dy)*(1e-3*delta1); //alert(elng+" "+elat)
+  drawMarker({lat:elat, lng:elng}, tx, ty, 0, xy);
+ } else {
+  const x = parseInt(te.value.slice(0,3)), y = parseInt(te.value.slice(4)); //alert(x+" "+y) // ...so easily adjusted, tested
+  dx = (k%3==2?0:1-2*(k%3)); dy = (k<4?+1:(k>6?-1:0)); //alert(dx+" "+dy)
+  te.value = (1000+(x+100*dx)).toString().slice(1)+"."+(1000+(y+100*dy)).toString().slice(1); //alert(te.value)
+  typeMarker(0, k);
+ }
+  document.getElementById("bNine").removeAttribute("disabled"); //alert(nearTag)
+}
+
+function nineMarkers() {
+// create all nine Queen's case markers around current @code
+  var k = 0; while (++k<=9) if (markers[k]!==undefined) { markers[k].setMap();} //alert(k)}
+  const ta = document.getElementById("tatC"), tav = ta.value;
+  const te = document.getElementById("tECM"), tev= te.value, tu = document.getElementById("tU1M"), tuv = tu.value; //alert(tev+" "+tuv)  //*TEMP: saves
+ if (true) { // GROSS KLUDGE: double-up focal marker, which will be removed agai
+  const xe = parseInt(tev.slice(0,3)), ye = parseInt(tev.slice(4)); //alert(xe+" "+ye) 
+  const elng = CTR.lng +(xe-500)*(1e-3*delta1/coslat), elat = CTR.lat +(ye-500)*(1e-3*delta1); drawMarker({lat:elat, lng:elng}, xe,ye, 10);
+ }  
+  const t = ta.value; typeMarker(-2, -0);  // KLUDGE: center first, to set ECM origin ...
+  const x = parseInt(te.value.slice(0,3)), y = parseInt(te.value.slice(4)); //alert(x+" "+y) // ...so easily adjusted, tested
+  var k = 0; while (++k<=9) if (k!=5) { //if(k%4!=1) continue;  //!TESTing
+//ta.value = k+"@"+t.slice(-4); typeMarker(2, k);}  // all except center
+    var dx = (k%3==2?0:1-2*(k%3)); dy = (k<4?+1:(k>6?-1:0)); //alert(dx+" "+dy)
+	if ((x+100*dx)>=0 && (x+100*dx)<1000 && (y+100*dy)>=0 && (y+100*dy)<1000) {
+     te.value = (1000+(x+100*dx)).toString().slice(1)+"."+(1000+(y+100*dy)).toString().slice(1); //alert(te.value)
+	 typeMarker(0, -k);  //NB: -ve 2nd param flags a [More] operation
+	} 
+  }
+  ta.value = t; typeMarker(2, -5); ta.value = tav; // reassert origin, then restore Mark
+  te.value = tev; tuv = tu.value = tuv; //*TEMP: restores
+}
+*/
+function typeMarker(q, f) { //alert ("at typeMarker "+q+","+f)
+// create a marker from typed ECM or U1M cooordinate, either 4- or 6-digit; or a queens-case @Code
+  const c = (params.has("C500")?500:550); //alert(c)
+  const m = 1000, o0m = origin[0]%m, o1m = origin[1]%m;
+  const ta = document.getElementById("tatC");
+  const te = document.getElementById("tECM"), tu = document.getElementById("tU1M");
+  if (q==0||q==1) { // ECM or U1M
+    var t = (q?tu:te).value, i = t.indexOf("."); //alert(t+" "+i)
+    if (i<0) { alert("Dot separator!"); return }
+    if (i!=3 || t.length!=7) { alert("Misformatted!"); return }
+//if (c) {t.Eing = (t.Eing+950)%1000; t.Ning = (t.Ning+950)%1000;}  // effectively subtract 50, mod 1000
+    if (q) { t = toECM(t); te.value = t;} else tu.value = toU1M(t);
+    const x = parseInt(t.slice(0,3)), y = parseInt(t.slice(4));  // always ECM here
+  if (c==500) {	// simple centering solution solution 
+    t = tu.value; ta.value = ((x>=500&&x<599 && y>=500&&y<599)?"":t.charAt(0)+t.charAt(4))+"@"+t.slice(1,3)+t.slice(5,7); //canonical XY@xxyy format
+    var elng = CTR.lng +(x-500)*(1e-3*delta1/coslat), elat = CTR.lat +(y-500)*(1e-3*delta1);
+  } else {
+    t = tu.value; ta.value = ((x>=450&&x<550 && y>=450&&y<550)?"":t.charAt(0)+t.charAt(4))+"@"+t.slice(1,3)+t.slice(5,7); //canonical XY@xxyy format
+    var elng = CTR.lng +(x-550)*(1e-3*delta1/coslat), elat = CTR.lat +(y-550)*(1e-3*delta1);
+  }  
+    drawMarker({lat:elat, lng:elng}, x,y, q, f);
+
+  } else { // @code or k@code or xy@code below here
+    var j = 0; while (++j<=9) if (markers[j]!==undefined) markers[j].setMap();  // remove any prior [More] 
+    var t = ta.value, i = t.indexOf("@"), p = (i<0?-1:t.slice(0,i)); // initial locator, prefix  //WAS: if (i>2) { alert("Misformatted!"); return };
+   var ts = t.trim().replace(/ /g,",")+","; j = 0; //alert(ts+" "+j)
+   while (ts.length) { i = ts.indexOf(","); t = ts.slice(0,i); ts = ts.slice(i+1); j++;  //alert(ts+" "+j+" "+t) // piece-out vector of @codes
+    i = t.indexOf("@"); if (i>2) { alert("Misformatted!"); return } else p = (i<0?p:t.slice(0,i)); // update prefix if @ present
+    const d0 = parseInt(t.charAt(0)), d1 = parseInt(t.charAt(1)); // prefix digit(s); NB: d1 m/b NaN
+    if (i<0) if (t.length>=4&&t.length<=6) {i = t.length-4; t = t.slice(0,i)+"@"+t.slice(i);} else {alert("Unrecognized "+t); return } // interpolate @
+    t = hiDigit(o0m, t.slice(i+1,i+3))+"."+hiDigit(o1m, t.slice(i+3)); //alert(i+" "+t) // now in UTM 6-digit format, constrained to 100 m subtile
+  //t = (1000+o0m).toString().charAt(1)+t.slice(i+1,i+3)+"."+(1000+o1m).toString().charAt(1)+t.slice(i+3); //alert(t) // now in UTM 6-digit format
+    var k = 0, dx = parseInt(t.charAt(0)), dy = parseInt(t.charAt(4)); // hi-digits of each ordinate
+    if (i<0) {  alert(p) // no @
+	} else {  // @ present
+     if (i==2) { // direct hi-digit specifications
+      if (d0==(parseInt(hiDigit(o0m, "00").charAt(0))+5)%10) {alert("Illegal X position "+d0+" for "+t); continue }
+      if (d1==(parseInt(hiDigit(o1m, "00").charAt(0))+5)%10) {alert("Illegal Y position "+d1+" for "+t); continue }
+	  dx = d0; dy = d1; 
+     } else { // queens-case selector (phone keypad); wrap-around hi-digit adjustment
+      k = (i==0?5:d0); const kx = (k%3==2?0:1-2*(k%3)), ky = (k<4?+1:(k>6?-1:0)); //alert(kx+" "+ky) 
+      dx = (dx +(kx<0?9:kx))%10; dy = (dy +(ky<0?9:ky))%10; // hi-digit adjustments, effectively mod 10
+     }; //alert(k+": "+dx+","+dy)
+     t = (dx+t.slice(1,3))+"."+(dy+t.slice(5,7));  //NB: concatenation
+     tu.value = t; 
+   //ta.value = t.charAt(0)+t.charAt(4)+"@"+t.slice(1,3)+t.slice(5,7); // FULL canonical XY@xxyy format of current/last locator
+    }
+    t = toECM(t); i = t.indexOf(".");//te .value = t; // now ECM, which is ... centered at 550.550 so easily adjusted
+//if (c) {t.Eing = (t.Eing+950)%1000; t.Ning = (t.Ning+950)%1000;}  // effectively subtract 50, mod 1000
+ x = parseInt(t.slice(0,i)); y = parseInt(t.slice(i+1)); //after some KLUDGERY
+ if (x<100) x += 600; if (y<100) y += 600; //alert(i+" "+t+": "+x+" "+y)
+    te.value = (1000+x).toString().slice(1)+"."+(1000+y).toString().slice(1); //alert(f+" "+te.value)
+    const elng = CTR.lng +(x-c)*(1e-3*delta1/coslat), elat = CTR.lat +(y-c)*(1e-3*delta1); // elegant centering solution
+    tag = drawMarker({lat:elat, lng:elng}, x,y, 2, j);  //NB: sets global tag
+   } // while
+    }
+  }
+  function hiDigit(o, tt) {
+  // set high digit from 3-digit numeric origin (o), minus-1 if low 2-digits of text ordinate (tt) less than low 2-digits of origin (o) plus 49
+    const t = (1000+o).toString();
+    var h = t.charAt(1); if (parseInt(tt)>parseInt(t.slice(2))+49) h = ((parseInt(h)+9)%10).toString();
+    return h+tt;  
+  }
+ /*
+  var j = 0; if (f==undefined) while (++j<=9) if (markers[j]!==undefined) markers[j].setMap();  // remove any prior [More] 
+  var t = ta.value, i = t.indexOf("@"); //WAS: if (i<0 || i>2) { alert("Misformatted!"); return }; //alert(t) // for now @ required
+ var ts = t.trim().replace(/ /g,",")+","; j = (f!==undefined?f:0); //alert(ts+" "+j)
+ while (ts.length) { i = ts.indexOf(","); t = ts.slice(0,i); ts = ts.slice(i+1); if (f==undefined) j++;  //alert(ts+" "+j+" "+t) // piece-out vector of @codes
+  i = t.indexOf("@"); if (i>2) { alert("Misformatted!"); return };
+  const d0 = parseInt(t.charAt(0)), d1 = parseInt(t.charAt(1)); // prefix digit(s); NB: d1 m/b NaN
+  if (i<0) if (t.length>=4&&t.length<=6) {i = t.length-4; t = t.slice(0,i)+"@"+t.slice(i);} else {alert("Unrecognized "+t); return } // interpolate @
+  t = hiDigit(o0m, t.slice(i+1,i+3))+"."+hiDigit(o1m, t.slice(i+3)); //alert(i+" "+t) // now in UTM 6-digit format, constrained to 100 m subtile
+//t = (1000+o0m).toString().charAt(1)+t.slice(i+1,i+3)+"."+(1000+o1m).toString().charAt(1)+t.slice(i+3); // now in UTM 6-digit format
+  var x = parseInt(t.charAt(0)), dx = 0, y = parseInt(t.charAt(4)), dy = 0;  // hi-digits of each ordinate, no adjustment
+  if (i>=0) {
+// const d0 = parseInt(t.charAt(0)), d1 = parseInt(t.charAt(1)); // prefix digit(s); NB: d1 m/b NaN
+   if (i>1) { // direct hi-digit specifications
+    if (d0==(parseInt(hiDigit(o0m, "00").charAt(0))+5)%10) {alert("Illegal X position "+d0+" for "+t); continue }
+    if (d1==(parseInt(hiDigit(o1m, "00").charAt(0))+5)%10) {alert("Illegal Y position "+d1+" for "+t); continue }
+	dx = x -d0; x = d0; dy = y -d1; y = d1; 
+   } else { // queens-case selector (phone keypad); wrap-around hi-digit adjustment
+    var k = (i==0?5:d0);
+    dx = (k%3==2?0:1-2*(k%3)); dy = (k<4?+1:(k>6?-1:0));
+    x = (x +(dx<0?9:dx))%10; y = (y +(dy<0?9:dy))%10; // hi-digit adjustments, effectively mod 10
+   }; //alert(k+" "+x+","+dx+"; "+y+","+dy)
+   t = (x+t.slice(1,3))+"."+(y+t.slice(5,7));  //NB: concatenation
+   tu.value = t; 
+// ta.value = t.charAt(0)+t.charAt(4)+"@"+t.slice(1,3)+t.slice(5,7); // FULL canonical XY@xxyy format of current/last locator
+  }
+  t = toECM(t); te.value = t; // now ECM, which is ...
+  x = parseInt(t.slice(0,3)) +00*dx, y = parseInt(t.slice(4)) +00*dy;  // ... centered at 500.500 so easily adjusted
+//te.value = (1000+x).toString().slice(1)+"."+(1000+y).toString().slice(1); //alert(f+" "+te.value)
+  const elng = CTR.lng +(x-500)*(1e-3*delta1/coslat), elat = CTR.lat +(y-500)*(1e-3*delta1); 
+  if (q!=-2) tag = drawMarker({lat:elat, lng:elng}, x,y, j);  //NB: set global
+ } // while
+  document.getElementById("bNear").removeAttribute("disabled"); 
+//document.getElementById("bNine").setAttribute("disabled", true); 
+ }
+}
+
+function hiDigit(o, tt) {
+// set high digit from 3-digit numeric origin (o), minus-1 if low 2-digits of text ordinate (tt) greater than low 2-digits of origin plus 49)
+  const t = (1000+o).toString();
+  var h = t.charAt(1); //SUP: if (parseInt(tt)>parseInt(t.slice(2))+49) h = ((parseInt(h)+9)%10).toString();
+  return h+tt;  
+}
+*/
+function drawMarker(e, x,y, q, f) { //alert("at drawMarker "+x+","+y+" "+f+" "+f)
+  const c = (params.has("C500")?500:550);
+  var icon, infowindow, marker1, tag1;
+  const t = (1000+x).toString().slice(1)+"."+(1000+y).toString().slice(1), u = toU1M(t);
+//tag1 = u.charAt(0)+u.charAt(4)+"@"+(parseInt(u.slice(1,3))+c)+(parseInt(u.slice(5,7))+c);  //NB: NOT safe Concatenation
+  tag1 = u.charAt(0)+u.charAt(4)+"@"+u.slice(1,3)+u.slice(5,7);  //NB: Concatenation
+  tag1 += String.fromCharCode(13)+"ECM: "+t +String.fromCharCode(13)+"U1M: "+u;
+  icon = "https://maps.google.com/mapfiles/ms/icons/"+(q==0?"blue-dot.png":"purple-dot.png");
+//if (f!==undefined) icon = "https://maps.google.com/mapfiles/ms/icons/red-dot.png";
+  if (!f) { //ECM/U1M
+    if (marker!==undefined) marker.setMap();  //NB: markers alternate, do not stack
+    marker1 = new google.maps.Marker({position:e, title:tag1, icon:icon, map}); marker = marker1;
+  } else { // @codes
+    marker1 = new google.maps.Marker({position:e, title:tag1, icon:icon, map}); markers[f] = marker1;
+  }
+  var i = (c==500?2:0); if (c==550 && q>0) i = (t.charAt(0)==5 && t.charAt(4)==5?2:0);  // within 100x100 m subtile;
+  infowindow = new google.maps.InfoWindow({content:(q==0?t:tag1.slice(i,7))}); 
+  infowindow.open({anchor:marker1, shouldFocus:false, map,});
+  marker1.addListener("click", () => {infowindow.open({anchor:marker1, map,}); });
+  return tag1; //?TEMP; only used in clickMarker()
+}
+
+
+</script>
+
+<style>
+ .Logo {margin:3%; position:relative;}
+ .Appname {position:absolute; top:50px; left:80px;}
+ .ECMU1m  {position:absolute; top:80px; left:415px; font-size: 8pt;}
+  #map { height: 720px; width: 720px; overflow: scroll; }
+  html {font-size: 12pt; }
+</style>
+
+<body>
+ <table border=0>
+  <tr width=740 vAlign=TOP>
+   <td>
+    <img class=Logo src='smartpoint-horizontal-logo-209x50.png'>
+  </tr>	
+  <tr>
+   <td>
+   <h3 class=Appname>1M AutoViewer</h3> 
+    &nbsp; <b>Anchor</b>: <input id=Anchor type=text placeholder="longitude & latitude" value = "-117.86359 & 33.66848" onChange="txtAnchor()"> 
+	<span class=ECMU1m><small>
+    &nbsp; <!--label for=tECM></label>: --><button onClick="typeMarker(0)"></b>ECM</b></button> <input id=tECM type=text value="550.550" size=7> <!-- button onClick="typeMarker(0)">ECM</button -->
+    &nbsp; <!--label for=tU1M></label>: --><button onClick="typeMarker(1)"></b>U1M</b></button> <input id=tU1M type=text value="940.733" size=7> <!-- button onClick="typeMarker(1)">U1M</button -->
+	</small></span>
+    &nbsp;<select id=Builtins onChange="setAnchor(this.selectedIndex)"><option value=0>Built-ins<option value=1>SCP Retail<option value=2>SNA Airport<option value=3>WFB Office<option value=4>UCI Campus<option value=5>CDM House</select>
+<!--&nbsp;&nbsp; <label for=tU1M>1M<sup>&reg;</sup> Codes </label><input id=tatC type=text value="@4033" size=15> <button onClick="typeMarker(2)">Mark</button>
+<!--&nbsp; <b>Grid Type</b> <select id=GType onChange="setGrid(this.selectedIndex)" disabled><option value=0>Choose<option value=1>AWM 1km<option value=2>ECM 1km<option value=3>U1M 1km<option value=4>UTM 1km</select>
+	&nbsp; <b>Marker</b> <input id=Marker type=text onChange="typeMarker()" size=9 value="" disabled> -->
+    &nbsp;&nbsp; <label for=tU1M>1M<sup>&reg;</sup> <b>Codes</b></label>: <input id=tatC type=text value="@4033" size=25> <button onClick="typeMarker(2)">Mark</button> 
+  </tr> 
+ </table>
+<!--label for=tECM>ECM </label><input id=tECM type=text value="550.550" size=7> <button onClick="typeMarker(0)">Mark</button>
+ &nbsp;&nbsp;
+<label for=tU1M>U1M </label><input id=tU1M type=text value="940.733" size=7> <button onClick="typeMarker(1)">Mark</button>
+ &nbsp;&nbsp; -->
+<hr size=1>
+<div id="map"></div>
+<hr size=1>
+<font face=Arial><small>Lon & Lat <input id="gLL" type=text size=20 readonly> &nbsp; UTM <input id="gEN" type=text size=15 readonly> &nbsp; U1M<sup>&reg;</sup> <input id="gU1" type=text size=7 readonly> &nbsp; ECM <input id="gE1" type=text size=7 readonly></small></font>
+</body>
+</html>
