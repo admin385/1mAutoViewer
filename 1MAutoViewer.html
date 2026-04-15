@@ -93,7 +93,7 @@ var origin=[0, 0], o0m, o1m; // full, precise UTM of grid center
   if (params.has("C500")) { alert("dels "+delE+" "+delN); alert("oXms "+o0m+" "+o1m);}
 	 var t = (params.has("C500") ? "500.500":"550.550"); document.getElementById("tECM").value = t; 
 //t = toU1M(t); document.getElementById("tU1M").value = t;
-t = toU1M(t); document.getElementById("tO1M").value = t;
+t = toO1M(t); document.getElementById("tO1M").value = t;
 //document.getElementById("tatC").value = "@"+t.slice(1,3)+t.slice(5,7);
 document.getElementById("tatC").value = "@"+t.slice(0,2)+t.slice(4,6)+"."+t.at(2)+t.at(6);
 	 if (map!==undefined) map = null;
@@ -198,8 +198,8 @@ function toECM(xy) {
   return t;
 }
 
-function toU1M(xy){
-// convert 6-digit ECM number to equivalent U1M (dot-separated in both cases)
+function toO1M(xy){
+// convert 6-digit ECM number to equivalent O1M (dot-separated in both cases)
   var t = xy.trim(); 
   const v = t.split("."), x = parseInt(v[0]), y = parseInt(v[1]); //alert(v[0]+" "+v[1])
   t = (x +(1000+delE)).toString().slice(1)+"."+(y +(1000+delN)).toString().slice(1); 
@@ -270,8 +270,17 @@ function nineMarkers() {
   te.value = tev; tuv = tu.value = tuv; //*TEMP: restores
 }
 */
-function typeMarker(q, f) { //alert ("at typeMarker "+q+","+f)
+function typeMarker(q, f) { console.log("at typeMarker "+q+","+f)
 // create a marker from typed ECM or U1M cooordinate, either 4- or 6-digit; or a queens-case @Code
+if (q == -2) {
+ var ta = document.getElementById("tatC"); console.log(ta)
+ if (ta.indexOf(".") < 0 ) { // four digits
+ 
+ } else { // six digits
+ 
+ }
+ return;
+}
   const c = (params.has("C500")?500:550); //alert(c)
   const m = 1000, o0m = origin[0]%m, o1m = origin[1]%m;
   const ta = document.getElementById("tatC");
