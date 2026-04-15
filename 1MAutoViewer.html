@@ -93,7 +93,7 @@ var origin=[0, 0], o0m, o1m; // full, precise UTM of grid center
   if (params.has("C500")) { alert("dels "+delE+" "+delN); alert("oXms "+o0m+" "+o1m);}
 	 var t = (params.has("C500") ? "500.500":"550.550"); document.getElementById("tECM").value = t; 
 //t = toU1M(t); document.getElementById("tU1M").value = t;
-t = toO1M(t); document.getElementById("tO1M").value = t;
+t = toU1M(t); document.getElementById("tO1M").value = t;
 //document.getElementById("tatC").value = "@"+t.slice(1,3)+t.slice(5,7);
 document.getElementById("tatC").value = "@"+t.slice(0,2)+t.slice(4,6)+"."+t.at(2)+t.at(6);
 	 if (map!==undefined) map = null;
@@ -198,7 +198,7 @@ function toECM(xy) {
   return t;
 }
 
-function toO1M(xy){
+function toU1M(xy){
 // convert 6-digit ECM number to equivalent O1M (dot-separated in both cases)
   var t = xy.trim(); 
   const v = t.split("."), x = parseInt(v[0]), y = parseInt(v[1]); //alert(v[0]+" "+v[1])
