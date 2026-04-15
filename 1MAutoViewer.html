@@ -10,8 +10,9 @@
 
 <script src="maplabel1.js"> </script>
 
-<!-- script src="https://htpm.co/1mviewer/UTMProj.js"> </script -->
-<script>
+<script src='UTMProj.js> </script>
+
+<!-- script>
 // UTM code that Phil D is using
 const
 Re=6378.137,f1=1/298.257223563,N0=0,E0=500,k0=0.9996,n1=f1/(2-f1),n2=n1*n1,n3=n1*n2,Rn=Re/(1+n1)*(1+n2/4*(1+n2/16)),alfa1=0.5*n1-2/3*n2+5/16*n3,alfa2=13/48*n2-3/5*n3,alfa3=61/240*n3,beta1=0.5*n1-2/3*n2+37/96*n3,beta2=1/48*n2+1/15*n3,beta3=17/480*n3,gama1=2*n1-2/3*n2-2*n3,gama2=7/3*n2-8/5*n3,gama3=56/15*n3,R_D=Math.PI/180;
@@ -26,7 +27,7 @@ var shem=(Lat<0?1:0);var zone=Math.trunc(Lon/6)+30,GSize10=10e6;var lda=Lon*R_D,
 +alfa3*Math.sin(6*xsi1)*Math.cosh(6*eta1));Result.Eing=Math.round(E*1e3)%GSize10;Result.Ning=Math.round(N*1e3)%GSize10;Result.Zone=zone
 if(shem){Result.Ning+=GSize10;Result.Zone=-Result.Zone}
 return Result;}
-</script>
+</script -->
 
 <script>
 
@@ -103,9 +104,21 @@ document.getElementById("tatC").value = "@"+t.slice(0,2)+t.slice(4,6)+"."+t.at(2
   //new google.maps.Circle({center:CTR, radius:5, clickable:false, fillOpacity:0, strokeColor:"#00f", strokeWeight:0.5, map });
 	center = new google.maps.Marker({position:CTR, title:o, icon:plussign, animation:google.maps.Animation.DROP, map }); 
     drawGridTile();
+draw10m(t) // testing
 	gLL = document.getElementById("gLL"); gEN = document.getElementById("gEN"); gU1 = document.getElementById("gU1"); gE1 = document.getElementById("gE1");
     setTimeout(main, 1000);
   }
+function draw10m(u) {
+// Draw a 10x10m cell ("yellow box")
+ var a = toUTM(ANCH); a.Eing -= (a.Eing%100 +0); a.Ning -= (a.Ning%100 +0); CTR = toLL(a, a.Zone); //alert(CTR.lat.toFixed(5)+" "+CTR.lng.toFixed(5))
+ const pts=[], uE0 = u.Eing -u.Eing%10, uN0 = u.Ning -u.Ning%10 
+  pts[0] = toLL({Eing:uE0+00, Ning:uN0+00}, a.Zone)
+  pts[1] = toLL({Eing:uE0+10, Ning:uN0+00}, a.Zone)
+  pts[2] = toLL({Eing:uE0+10, Ning:uN0+10}, a.Zone)
+  pts[3] = toLL({Eing:uE0+00, Ning:uN0+10}, a.Zone)
+  pts.push(pts[0])			
+  new google.maps.Polyline({path:pts, strokeColor:"#770", strokeWeight:1, map});
+}
   
   
   function drawGridTile() { //alert("at drawSubTile "+CTR.lat+","+CTR.lng)
@@ -408,7 +421,7 @@ function drawMarker(e, x,y, q, f) { //alert("at drawMarker "+x+","+y+" "+f+" "+f
     &nbsp; <b>Anchor</b>: <input id=Anchor type=text placeholder="longitude & latitude" value = "-117.86359 & 33.66848" onChange="txtAnchor()"> 
 	<span class=ECMU1m><small>
     &nbsp; <!--label for=tECM></label>: --><button onClick="typeMarker(0)"></b>ECM</b></button> <input id=tECM type=text value="550.550" size=7> <!-- button onClick="typeMarker(0)">ECM</button -->
-    &nbsp; <!--label for=tO1M></label>: --><button onClick="typeMarker(1)"></b>O1M</b></button> <input id=tO1M type=text value="940.733" size=7> <!-- button onClick="typeMarker(1)">U1M</button -->
+&nbsp; <!--label for=tO1M></label>: --><button disabled onClick="typeMarker(1)"></b>O1M</b></button> <input id=tO1M type=text value="940.733" size=7> <!-- button onClick="typeMarker(1)">U1M</button -->
 &nbsp; <!--label for=tU1M></label>: --><button onClick="typeMarker(-1)"></b>U1M</b></button> <input id=tU1M type=text value="9473.03" size=7> <!-- button onClick="typeMarker(-1)">U1M</button -->
 	</small></span>
     &nbsp;<select id=Builtins onChange="setAnchor(this.selectedIndex)"><option value=0>Built-ins<option value=1>SCP Retail<option value=2>SNA Airport<option value=3>WFB Office<option value=4>UCI Campus<option value=5>CDM House</select>
