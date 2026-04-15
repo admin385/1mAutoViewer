@@ -108,9 +108,10 @@ draw10m(t) // testing
 	gLL = document.getElementById("gLL"); gEN = document.getElementById("gEN"); gU1 = document.getElementById("gU1"); gE1 = document.getElementById("gE1");
     setTimeout(main, 1000);
   }
-function draw10m(u) { console.log("at draw10m ", ANCH)
+function draw10m(u) { console.log("at draw10m ", u)
 // Draw a 10x10m cell ("yellow box")
- var a = toUTM(ANCH); a.Eing -= (a.Eing%100 +0); a.Ning -= (a.Ning%100 +0); CTR = toLL(a, a.Zone); //alert(ANCH.lat.toFixed(5)+" "+ANCH.lng.toFixed(5))
+ var a = toUTM(ANCH); a.Eing -= (a.Eing%100 +0); a.Ning -= (a.Ning%100 +0); 
+ var c = toLL(a, a.Zone); //alert(c.lat.toFixed(5)+" "+c.lng.toFixed(5))
  const pts=[], uE0 = u.Eing -u.Eing%10, uN0 = u.Ning -u.Ning%10 
   pts[0] = toLL({Eing:uE0+00, Ning:uN0+00}, a.Zone)
   pts[1] = toLL({Eing:uE0+10, Ning:uN0+00}, a.Zone)
