@@ -406,13 +406,15 @@ function drawMarker(e, x,y, q, f) { //alert("at drawMarker "+x+","+y+" "+f+" "+f
     &nbsp; <b>Anchor</b>: <input id=Anchor type=text placeholder="longitude & latitude" value = "-117.86359 & 33.66848" onChange="txtAnchor()"> 
 	<span class=ECMU1m><small>
     &nbsp; <!--label for=tECM></label>: --><button onClick="typeMarker(0)"></b>ECM</b></button> <input id=tECM type=text value="550.550" size=7> <!-- button onClick="typeMarker(0)">ECM</button -->
-    &nbsp; <!--label for=tU1M></label>: --><button onClick="typeMarker(1)"></b>U1M</b></button> <input id=tU1M type=text value="940.733" size=7> <!-- button onClick="typeMarker(1)">U1M</button -->
+    &nbsp; <!--label for=tO1M></label>: --><button onClick="typeMarker(1)"></b>O1M</b></button> <input id=tO1M type=text value="940.733" size=7> <!-- button onClick="typeMarker(1)">O1M</button -->
+&nbsp; <!--label for=tU1M></label>: --><button onClick="typeMarker(-1)"></b>U1M</b></button> <input id=tU1M type=text value="9473.03" size=7> <!-- button onClick="typeMarker(-1)">U1M</button -->
 	</small></span>
     &nbsp;<select id=Builtins onChange="setAnchor(this.selectedIndex)"><option value=0>Built-ins<option value=1>SCP Retail<option value=2>SNA Airport<option value=3>WFB Office<option value=4>UCI Campus<option value=5>CDM House</select>
 <!--&nbsp;&nbsp; <label for=tU1M>1M<sup>&reg;</sup> Codes </label><input id=tatC type=text value="@4033" size=15> <button onClick="typeMarker(2)">Mark</button>
 <!--&nbsp; <b>Grid Type</b> <select id=GType onChange="setGrid(this.selectedIndex)" disabled><option value=0>Choose<option value=1>AWM 1km<option value=2>ECM 1km<option value=3>U1M 1km<option value=4>UTM 1km</select>
 	&nbsp; <b>Marker</b> <input id=Marker type=text onChange="typeMarker()" size=9 value="" disabled> -->
-    &nbsp;&nbsp; <label for=tU1M>1M<sup>&reg;</sup> <b>Codes</b></label>: <input id=tatC type=text value="@4033" size=25> <button onClick="typeMarker(2)">Mark</button> 
+<!--&nbsp;&nbsp; <label for=tU1M>1M<sup>&reg;</sup> <b>Codes</b></label>: <input id=tatC type=text value="@4033" size=25> <button onClick="typeMarker(2)">Mark</button --> 
+    &nbsp;&nbsp; <label for=tU1M>1M<sup>&reg;</sup> <b>Codes</b></label>: <input id=tatC type=text value="@9474.03" size=25> <button onClick="typeMarker(-2)">Mark</button> 
   </tr> 
  </table>
 <!--label for=tECM>ECM </label><input id=tECM type=text value="550.550" size=7> <button onClick="typeMarker(0)">Mark</button>
