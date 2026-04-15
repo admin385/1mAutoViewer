@@ -273,9 +273,9 @@ function nineMarkers() {
 function typeMarker(q, f) { console.log("at typeMarker "+q+","+f)
 // create a marker from typed ECM or U1M cooordinate, either 4- or 6-digit; or a queens-case @Code
 if (q == -2) {
- var ta1 = document.getElementById("tatC"); console.log(ta1)
+ var ta1 = document.getElementById("tatC").value; console.log(ta1)
  var a = toUTM(ANCH); //a.Eing -= (a.Eing%100 +0); a.Ning -= (a.Ning%100 +0); 
- a.Eing -= (a.Eing%1000); a.Eing += 10*parseInt(ta1.slice(0,2)); a.Ning -= (a.Ning%1000); a.Ning += 10*parseInt(ta1.slice(2,4))
+ a.Eing -= (a.Eing%1000); a.Eing += 10*parseInt(ta1.slice(1,3)); a.Ning -= (a.Ning%1000); a.Ning += 10*parseInt(ta1.slice(3,5))
  if (ta1.indexOf(".") < 0 ) { a.Eing += 5; a.Ning += 5 } // four digits; take center
  var LL = toLL({Eing:a.Eing, Ning:a.Ning}, a.Zone);
  var elat = LL.lat, elng = LL.lng
