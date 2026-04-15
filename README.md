@@ -1,1 +1,1 @@
-# 1mAutoViewer
+# 1mAutoViewer (10m)
